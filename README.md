@@ -1,2 +1,2 @@
 # disq
-A custom job-queue library
+A job-queue library
