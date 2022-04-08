@@ -15,45 +15,24 @@ var contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 var messageType = reflect.TypeOf((*Message)(nil))
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-type Delayer interface {
-	Delay() time.Duration
+// Handler is an interface for processing messages.
+type Handler interface {
+	HandleMessage(msg *Message) error
 }
 
 type HandlerOptions struct {
-	// Task name.
-	Name string
-
-	// Function called to process a message.
-	// There are three permitted types of signature:
-	// 1. A zero-argument function
-	// 2. A function whose arguments are assignable in type from those which are passed in the message
-	// 3. A function which takes a single `*Message` argument
-	// The handler function may also optionally take a Context as a first argument and may optionally return an error.
-	// If the handler takes a Context, when it is invoked it will be passed the same Context as that which was passed to
-	// `StartWorker`. If the handler returns a non-nil error the message processing will fail and will be retried/.
+	Name    string
 	Handler interface{}
-	// Function called to process failed message after the specified number of retries have all failed.
-	// The FallbackHandler accepts the same types of function as the Handler.
-	FallbackHandler interface{}
-
-	// Optional function used by Worker with defer statement
-	// to recover from panics.
-	DeferFunc func()
 }
 
 func (opt *HandlerOptions) Init() {
 	if opt.Name == "" {
-		panic("TaskOptions.Name is required")
+		panic("Handler.Name is required")
 	}
 
 	if opt.Handler == nil {
 		panic("Handler is required")
 	}
-}
-
-// Handler is an interface for processing messages.
-type Handler interface {
-	HandleMessage(msg *Message) error
 }
 
 type HandlerFunc func(*Message) error
@@ -113,7 +92,7 @@ func NewHandler(opt *HandlerOptions) Handler {
 func (h *reflectFunc) HandleMessage(msg *Message) error {
 	in, err := h.fnArgs(msg)
 	if err != nil {
-		msg.Delay = h.delay(msg, err, h.opt)
+		fmt.Println(msg.Delay)
 		return err
 	}
 
@@ -121,33 +100,12 @@ func (h *reflectFunc) HandleMessage(msg *Message) error {
 	if h.returnsError {
 		errv := out[h.ft.NumOut()-1]
 		if !errv.IsNil() {
-			msg.Delay = h.delay(msg, err, h.opt)
+			fmt.Println(msg.Delay)
 			return errv.Interface().(error)
 		}
 	}
 
 	return nil
-}
-
-func (h *reflectFunc) delay(msg *Message, msgErr error, opt *HandlerOptions) time.Duration {
-	if delayer, ok := msgErr.(Delayer); ok {
-		return delayer.Delay()
-	}
-	return msg.Delay
-}
-
-func exponentialBackoff(min, max time.Duration, retry int) time.Duration {
-	var d time.Duration
-	if retry > 0 {
-		d = min << uint(retry-1)
-	}
-	if d < min {
-		return min
-	}
-	if d > max {
-		return max
-	}
-	return d
 }
 
 func (h *reflectFunc) fnArgs(msg *Message) ([]reflect.Value, error) {
@@ -184,7 +142,7 @@ func (h *reflectFunc) fnArgs(msg *Message) ([]reflect.Value, error) {
 		}
 	}
 
-	b, err := msg.MarshalArgs()
+	b, err := msgpack.Marshal(msg.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -227,4 +185,8 @@ func acceptsContext(typ reflect.Type) bool {
 func returnsError(typ reflect.Type) bool {
 	n := typ.NumOut()
 	return n > 0 && typ.Out(n-1) == errorType
+}
+
+type Delayer interface {
+	Delay() time.Duration
 }
