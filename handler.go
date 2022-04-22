@@ -3,10 +3,8 @@ package disq
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -18,21 +16,6 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 // Handler is an interface for processing messages.
 type Handler interface {
 	HandleMessage(msg *Message) error
-}
-
-type HandlerOptions struct {
-	Name    string
-	Handler interface{}
-}
-
-func (opt *HandlerOptions) Init() {
-	if opt.Name == "" {
-		panic("Handler.Name is required")
-	}
-
-	if opt.Handler == nil {
-		panic("Handler is required")
-	}
 }
 
 type HandlerFunc func(*Message) error
@@ -47,24 +30,18 @@ type reflectFunc struct {
 
 	acceptsContext bool
 	returnsError   bool
-	opt            *HandlerOptions
 }
 
 var _ Handler = (*reflectFunc)(nil)
 
-func NewHandler(opt *HandlerOptions) Handler {
-	if opt.Handler == nil {
-		panic(errors.New("disq: handler func is nil"))
-	}
-	opt.Init()
-	fn := opt.Handler
+func NewHandler(fn interface{}) Handler {
+
 	if h, ok := fn.(Handler); ok {
 		return h
 	}
 
 	h := reflectFunc{
-		fv:  reflect.ValueOf(fn),
-		opt: opt,
+		fv: reflect.ValueOf(fn),
 	}
 	h.ft = h.fv.Type()
 	if h.ft.Kind() != reflect.Func {
@@ -92,7 +69,6 @@ func NewHandler(opt *HandlerOptions) Handler {
 func (h *reflectFunc) HandleMessage(msg *Message) error {
 	in, err := h.fnArgs(msg)
 	if err != nil {
-		fmt.Println(msg.Delay)
 		return err
 	}
 
@@ -100,7 +76,6 @@ func (h *reflectFunc) HandleMessage(msg *Message) error {
 	if h.returnsError {
 		errv := out[h.ft.NumOut()-1]
 		if !errv.IsNil() {
-			fmt.Println(msg.Delay)
 			return errv.Interface().(error)
 		}
 	}
@@ -185,8 +160,4 @@ func acceptsContext(typ reflect.Type) bool {
 func returnsError(typ reflect.Type) bool {
 	n := typ.NumOut()
 	return n > 0 && typ.Out(n-1) == errorType
-}
-
-type Delayer interface {
-	Delay() time.Duration
 }

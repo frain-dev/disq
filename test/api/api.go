@@ -6,24 +6,25 @@ import (
 	"log"
 
 	"github.com/frain-dev/disq"
-	test_task "github.com/frain-dev/disq/test"
+	test "github.com/frain-dev/disq/test"
 	"github.com/google/uuid"
 )
 
 func main() {
 
-	//go test_task.LogStats()
+	count := 5000000
 	go func() {
-		for i := 0; i < 500000000; i++ {
+		for i := 0; i < count; i++ {
 			value := fmt.Sprint("message_", uuid.NewString())
 			ctx := context.Background()
-			// delay := time.Minute * 1
+			// delay := time.Second * 10
 			msg := &disq.Message{
-				Ctx:  ctx,
-				Args: []interface{}{value},
-				// Delay: delay,
+				Ctx:      ctx,
+				TaskName: test.CountHandler.Name(),
+				Args:     []interface{}{value},
+				// Delay:    delay,
 			}
-			err := test_task.RWorker.Worker.Queue().Add(msg)
+			err := test.RWorker.Worker.Brokers()[0].Publish(msg)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -31,6 +32,50 @@ func main() {
 		}
 	}()
 
-	sig := test_task.WaitSignal()
+	go func() {
+		if len(test.RWorker.Worker.Brokers()) > 1 {
+			for i := 0; i < count; i++ {
+				value := fmt.Sprint("message_", uuid.NewString())
+				ctx := context.Background()
+				// delay := time.Second * 10
+				msg := &disq.Message{
+					Ctx:      ctx,
+					TaskName: test.CountHandler.Name(),
+					Args:     []interface{}{value},
+					// Delay:    delay,
+				}
+				err := test.RWorker.Worker.Brokers()[1].Publish(msg)
+				if err != nil {
+					log.Fatal(err)
+				}
+				// time.Sleep(time.Duration(3) * time.Second)
+			}
+		}
+
+	}()
+
+	go func() {
+		if len(test.RWorker.Worker.Brokers()) > 2 {
+
+			for i := 0; i < count; i++ {
+				value := fmt.Sprint("message_", uuid.NewString())
+				ctx := context.Background()
+				// delay := time.Second * 10
+				msg := &disq.Message{
+					Ctx:      ctx,
+					TaskName: test.CountHandler.Name(),
+					Args:     []interface{}{value},
+					// Delay:    delay,
+				}
+				err := test.RWorker.Worker.Brokers()[2].Publish(msg)
+				if err != nil {
+					log.Fatal(err)
+				}
+				// time.Sleep(time.Duration(3) * time.Second)
+			}
+		}
+	}()
+
+	sig := test.WaitSignal()
 	log.Println(sig.String())
 }

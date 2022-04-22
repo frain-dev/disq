@@ -5,13 +5,15 @@ import (
 	"time"
 )
 
-// Message is used to create and retrieve messages from a queue.
+// Message is used as a uniform structure for publishing and consuming messages from a queue.
 type Message struct {
 	Ctx context.Context
 
 	ID string
 
-	// Delay specifies the duration the queue must wait
+	TaskName string
+
+	// Delay specifies the duration the worker must wait
 	// before executing the message.
 	Delay time.Duration
 
@@ -35,4 +37,4 @@ func (m *Message) SetDelay(delay time.Duration) {
 	m.Delay = delay
 }
 
-type messageRaw Message
+type MessageRaw Message

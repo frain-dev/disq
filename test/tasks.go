@@ -3,28 +3,28 @@ package test
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/frain-dev/disq"
+	redisBroker "github.com/frain-dev/disq/brokers/redis"
 	"github.com/go-redis/redis/v8"
 )
 
-type RedisQueue struct {
-	Name  string
-	Queue *disq.Queue
-	inner *redis.Client
+type RedisBroker struct {
+	Name   string
+	Broker disq.Broker
+	inner  *redis.Client
 }
 
-type RedisWorker struct {
+type Worker struct {
 	Worker *disq.Worker
 	inner  *redis.Client
 }
 
+//Create Redis client
 func NewClient() (*redis.Client, error) {
 	dsn := "redis://localhost:6379"
 
@@ -44,87 +44,56 @@ func NewClient() (*redis.Client, error) {
 	return Redis, nil
 }
 
-func NewQueue(c *redis.Client, name string) *RedisQueue {
+//Create new broker
+func NewBroker(c *redis.Client, concurency int, name string) *RedisBroker {
 
-	q := &disq.Queue{
-		Redis: c,
-
-		Zset:        name + ":zset",
-		Stream:      name + ":stream",
-		StreamGroup: "disq",
+	cfg := redisBroker.RedisConfig{
+		Redis:       c,
+		Name:        name,
+		Concurency:  int32(concurency),
+		StreamGroup: "disq:",
 	}
+	b := redisBroker.New(&cfg)
 
-	return &RedisQueue{
-		Name:  name,
-		inner: c,
-		Queue: q,
-	}
-}
-
-func NewRedisWorker(c *redis.Client, q *RedisQueue, handler *disq.Handler) *RedisWorker {
-	con := disq.NewWorker(&disq.Options{
-		Queue:           q.Queue,
-		ReservationSize: 10,
-		Handler:         *handler,
-		RetryLimit:      4,
-	}, 1)
-
-	return &RedisWorker{
+	return &RedisBroker{
+		Name:   name,
 		inner:  c,
-		Worker: con,
+		Broker: b,
 	}
 }
 
-type EndpointError struct {
-	delay time.Duration
-	Err   error
+//create new worker
+func NewWorker(c *redis.Client, brokers []disq.Broker) *Worker {
+	w := disq.NewWorker(brokers, disq.WorkerConfig{})
+
+	return &Worker{
+		inner:  c,
+		Worker: w,
+	}
 }
 
-func (e *EndpointError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *EndpointError) Delay() time.Duration {
-	return e.delay
-}
-
-var CountHandler = disq.NewHandler(&disq.HandlerOptions{
-	Name: "printer",
+//create task
+var CountHandler, _ = disq.RegisterTask(&disq.TaskOptions{
+	Name: "CountHandler",
 	Handler: func(name string) error {
 		//time.Sleep(time.Duration(10) * time.Second)
-		fmt.Println("Hello", name)
+		// fmt.Println("Hello", name)
 		// return errors.New("error")
-		// return &EndpointError{Err: errors.New("Error"), delay: time.Minute * 1}
+		// return &EndpointError{Err: errors.New("Error"), delay: time.Second * 60}
 		return nil
 	},
+	RetryLimit: 3,
 })
 
 var (
 	Redis, _ = NewClient()
 )
 
-var RQueue = NewQueue(Redis, "disq7")
+var RBroker1 = NewBroker(Redis, 1000, "disq10")
+var RBroker2 = NewBroker(Redis, 100, "disq9")
+var RBroker3 = NewBroker(Redis, 10, "disq8")
 
-var RWorker = NewRedisWorker(Redis, RQueue, &CountHandler)
-
-var counter int32
-
-func GetLocalCounter() int32 {
-	return atomic.LoadInt32(&counter)
-}
-
-func IncrLocalCounter() {
-	atomic.AddInt32(&counter, 1)
-}
-
-func LogStats() {
-	var prev int32
-	for range time.Tick(3 * time.Second) {
-		n := GetLocalCounter()
-		log.Printf("processed %d tasks (%d/s)", n, (n-prev)/3)
-		prev = n
-	}
-}
+var RWorker = NewWorker(Redis, []disq.Broker{RBroker1.Broker, RBroker2.Broker, RBroker3.Broker})
 
 func WaitSignal() os.Signal {
 	ch := make(chan os.Signal, 2)
@@ -141,4 +110,17 @@ func WaitSignal() os.Signal {
 			return sig
 		}
 	}
+}
+
+type EndpointError struct {
+	delay time.Duration
+	Err   error
+}
+
+func (e *EndpointError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *EndpointError) Delay() time.Duration {
+	return e.delay
 }
