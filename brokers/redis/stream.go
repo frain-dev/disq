@@ -63,7 +63,7 @@ func (b *Stream) Consume(ctx context.Context) {
 			for {
 				select {
 				case msg := <-b.buffer:
-					b.Process(msg)
+					_ = b.Process(msg)
 				case <-b.quit:
 					return
 				}
@@ -117,6 +117,7 @@ func (b *Stream) Process(msg *disq.Message) error {
 		err := b.Delete(msg)          //delete from queue
 		if err != nil {
 			disq.Logger.Printf("delete failed: %s", err)
+			return err
 		}
 		return nil
 	}
@@ -132,7 +133,7 @@ func (b *Stream) Process(msg *disq.Message) error {
 		if err != nil {
 			disq.Logger.Printf("requeue failed: %s", err)
 		}
-		return msgErr
+		return err
 	}
 
 	atomic.AddUint32(&b.processed, 1)

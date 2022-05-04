@@ -53,7 +53,7 @@ func (b *List) Consume(ctx context.Context) {
 			for {
 				select {
 				case msg := <-b.buffer:
-					b.Process(msg)
+					_ = b.Process(msg)
 				case <-b.quit:
 					return
 				}
@@ -95,6 +95,7 @@ func (b *List) Process(msg *disq.Message) error {
 		err := b.Delete(msg)          //delete from queue
 		if err != nil {
 			disq.Logger.Printf("delete failed: %s", err)
+			return err
 		}
 		return nil
 	}
@@ -109,7 +110,7 @@ func (b *List) Process(msg *disq.Message) error {
 		if err != nil {
 			disq.Logger.Printf("requeue failed: %s", err)
 		}
-		return msgErr
+		return err
 	}
 
 	atomic.AddUint32(&b.processed, 1)
@@ -117,7 +118,7 @@ func (b *List) Process(msg *disq.Message) error {
 	if err != nil {
 		disq.Logger.Printf("delete failed: %s", err)
 	}
-	return msg.Err
+	return err
 }
 
 //delete a message then add it back to the queue
