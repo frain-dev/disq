@@ -346,7 +346,7 @@ func TestRequeue(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
-				time.Sleep(time.Duration(1) * time.Second)
+				time.Sleep(time.Duration(3) * time.Second)
 
 				msgs, err = b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
@@ -380,7 +380,7 @@ func TestRequeue(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
-				time.Sleep(time.Duration(1) * time.Second)
+				time.Sleep(time.Duration(3) * time.Second)
 
 				msgs, err = b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
