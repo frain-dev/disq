@@ -36,7 +36,10 @@ jobs:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        
       - name: Get and verify dependencies
         run: go mod download && go mod verify
 

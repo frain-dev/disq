@@ -148,10 +148,12 @@ func TestFetchNandProcess(t *testing.T) {
 				}
 				msgs, err := b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
-					return "", nil
+					return "", err
 				}
-				b.Process(&msgs[0])
-
+				err = b.Process(&msgs[0])
+				if err != nil {
+					return "", err
+				}
 				length, err := b.Len()
 				if err != nil {
 					return "", err
@@ -176,10 +178,12 @@ func TestFetchNandProcess(t *testing.T) {
 				}
 				msgs, err := b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
-					return "", nil
+					return "", err
 				}
-				b.Process(&msgs[0])
-
+				err = b.Process(&msgs[0])
+				if err != nil {
+					return "", err
+				}
 				length, err := b.Len()
 				if err != nil {
 					return "", err
@@ -336,9 +340,12 @@ func TestRequeue(t *testing.T) {
 				}
 				msgs, err := b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
-					return "", nil
+					return "", err
 				}
-				b.Process(&msgs[0])
+				err = b.Process(&msgs[0])
+				if err != nil {
+					return "", err
+				}
 				time.Sleep(time.Duration(1) * time.Second)
 
 				msgs, err = b.FetchN(ctx, 1, time.Duration(1))
@@ -367,9 +374,12 @@ func TestRequeue(t *testing.T) {
 				}
 				msgs, err := b.FetchN(ctx, 1, time.Duration(1))
 				if err != nil {
-					return "", nil
+					return "", err
 				}
-				b.Process(&msgs[0])
+				err = b.Process(&msgs[0])
+				if err != nil {
+					return "", err
+				}
 				time.Sleep(time.Duration(1) * time.Second)
 
 				msgs, err = b.FetchN(ctx, 1, time.Duration(1))
