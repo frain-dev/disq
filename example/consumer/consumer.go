@@ -6,16 +6,16 @@ import (
 	"log"
 	"time"
 
-	redisBroker "github.com/frain-dev/disq/brokers/redis"
-	test "github.com/frain-dev/disq/test"
+	example "github.com/frain-dev/disq/example"
 )
 
 func main() {
 	ctx := context.Background()
 	flag.Parse()
 
-	w := test.RWorker.Worker
-	// b := test_task.RQueue.Queue
+	w := example.RWorker.Worker
+
+	// b := example.RQueue.Queue
 	// w.Brokers()[0].(*redisBroker.Broker).Purge()
 
 	err := w.Start(ctx)
@@ -32,7 +32,7 @@ func main() {
 		case <-ticker.C:
 			// len, _ := b.Len()
 			for i, b := range w.Brokers() {
-				len, _ := b.(*redisBroker.Broker).Len()
+				len, _ := b.Len()
 				log.Printf("Broker_%d Queue Size: %+v", i, len)
 				log.Printf("Broker_%d Stats: %+v\n\n", i, b.Stats())
 			}
