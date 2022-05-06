@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 )
 
 var Logger *log.Logger
@@ -15,6 +16,10 @@ func init() {
 
 func SetLogger(logger *log.Logger) {
 	Logger = logger
+}
+
+func UnixMs(tm time.Time) int64 {
+	return tm.UnixNano() / int64(time.Millisecond)
 }
 
 func ConsumerName() string {

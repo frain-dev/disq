@@ -23,6 +23,9 @@ type Message struct {
 	// The number of times the message has been reserved or released.
 	RetryCount int
 
+	//Execution time need for localstorage delays
+	ExecutionTime time.Time
+
 	Err error
 }
 
