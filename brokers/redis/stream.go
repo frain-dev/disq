@@ -3,8 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,7 +24,7 @@ type Stream struct {
 	zset                string
 	stream              string
 	streamGroup         string
-	streamConsumer      string
+	consumerName        string
 	opts                *RedisConfig
 	buffer              chan *disq.Message
 	processed           uint32
@@ -44,13 +42,13 @@ func NewStream(cfg *RedisConfig) disq.Broker {
 		log.Errorf("Error: %v", err)
 	}
 	broker := &Stream{
-		Redis:          cfg.Redis,
-		zset:           cfg.Name + ":zset",
-		stream:         cfg.Name + ":stream",
-		streamGroup:    cfg.StreamGroup,
-		streamConsumer: ConsumerName(),
-		opts:           cfg,
-		buffer:         make(chan *disq.Message, cfg.BufferSize),
+		Redis:        cfg.Redis,
+		zset:         cfg.Name + ":zset",
+		stream:       cfg.Name + ":stream",
+		streamGroup:  cfg.StreamGroup,
+		consumerName: disq.ConsumerName(),
+		opts:         cfg,
+		buffer:       make(chan *disq.Message, cfg.BufferSize),
 	}
 	return broker
 }
@@ -213,7 +211,7 @@ func (b *Stream) FetchN(
 	streams, err := b.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Streams:  []string{b.stream, ">"},
 		Group:    b.streamGroup,
-		Consumer: b.streamConsumer,
+		Consumer: b.consumerName,
 		Count:    int64(n),
 		Block:    waitTimeout,
 	}).Result()
@@ -296,7 +294,7 @@ func (b *Stream) createStreamGroup(ctx context.Context) {
 
 func (b *Stream) Stats() *disq.Stats {
 	return &disq.Stats{
-		Name:      b.streamConsumer,
+		Name:      b.consumerName,
 		Processed: atomic.LoadUint32(&b.processed),
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
@@ -314,13 +312,6 @@ func StreamUnmarshalMessage(msg *disq.Message, xmsg *redis.XMessage) error {
 	}
 	msg.ID = xmsg.ID
 	return nil
-}
-
-func ConsumerName() string {
-	s, _ := os.Hostname()
-	s += ":pid:" + strconv.Itoa(os.Getpid())
-	s += ":" + strconv.Itoa(rand.Int())
-	return s
 }
 
 func (b *Stream) scheduleDelayed(ctx context.Context) (int, error) {
@@ -383,7 +374,7 @@ func (b *Stream) schedulePending(ctx context.Context) (int, error) {
 		}
 
 		if len(xmsgs) != 1 {
-			err := fmt.Errorf("redisq: can't find pending message id=%q in stream=%q",
+			err := fmt.Errorf("disq: can't find pending message id=%q in stream=%q",
 				id, b.stream)
 			return 0, err
 		}

@@ -21,7 +21,7 @@ type List struct {
 	list         string
 	opts         *RedisConfig
 	buffer       chan *disq.Message
-	listConsumer string
+	consumerName string
 	processed    uint32
 	retries      uint32
 	fails        uint32
@@ -39,7 +39,7 @@ func NewList(cfg *RedisConfig) disq.Broker {
 		Redis:        cfg.Redis,
 		list:         cfg.Name + ":list",
 		opts:         cfg,
-		listConsumer: ConsumerName(),
+		consumerName: disq.ConsumerName(),
 		buffer:       make(chan *disq.Message, cfg.BufferSize),
 	}
 	return broker
@@ -190,7 +190,7 @@ func (b *List) FetchN(
 ) ([]disq.Message, error) {
 	List, err := b.Redis.LPopCount(ctx, b.list, n).Result()
 	if err != nil {
-		if err == redis.Nil { // timeout
+		if err == redis.Nil {
 			return nil, nil
 		}
 		return nil, err
@@ -243,7 +243,7 @@ func (b *List) Len() (int, error) {
 
 func (b *List) Stats() *disq.Stats {
 	return &disq.Stats{
-		Name:      b.listConsumer,
+		Name:      b.consumerName,
 		Processed: atomic.LoadUint32(&b.processed),
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
