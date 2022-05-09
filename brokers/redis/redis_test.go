@@ -17,7 +17,6 @@ func TestConsume(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating redis client: %s", err)
 	}
-	//create task
 	TestHandler, _ := disq.RegisterTask(&disq.TaskOptions{
 		Name: uuid.NewString(),
 		Handler: func(name string) error {
@@ -56,7 +55,7 @@ func TestConsume(t *testing.T) {
 				b.Consume(ctx)
 				time.Sleep(time.Duration(1) * time.Second)
 
-				length, err := b.(*Stream).Len()
+				length, err := b.Len()
 				if err != nil {
 					return "", err
 				}
@@ -214,7 +213,6 @@ func TestPublish(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating redis client: %s", err)
 	}
-	//create task
 	TestHandler, _ := disq.RegisterTask(&disq.TaskOptions{
 		Name: uuid.NewString(),
 		Handler: func(name string) error {
@@ -302,7 +300,6 @@ func TestRequeue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating redis client: %s", err)
 	}
-	//create task
 	TestHandler, _ := disq.RegisterTask(&disq.TaskOptions{
 		Name: uuid.NewString(),
 		Handler: func(name string) error {
@@ -390,6 +387,75 @@ func TestRequeue(t *testing.T) {
 				return fmt.Sprint(count), nil
 			},
 			expect: fmt.Sprint(1),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			configFile := tc.config
+			result, err := tc.tFN(context.Background(), configFile, msg)
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+			if result != tc.expect {
+				t.Fatalf("Expected %v, got %v", tc.expect, result)
+			}
+		})
+	}
+
+}
+
+func TestDelay(t *testing.T) {
+	client, err := NewClient()
+	if err != nil {
+		t.Fatalf("Error creating redis client: %s", err)
+	}
+	handlerCh := make(chan time.Time, 10)
+	TestHandler, _ := disq.RegisterTask(&disq.TaskOptions{
+		Name: uuid.NewString(),
+		Handler: func(name string) error {
+			handlerCh <- time.Now()
+			return nil
+		},
+		RetryLimit: 1,
+	})
+	value := fmt.Sprint("message_", uuid.NewString())
+	delay := time.Second * 5
+	msg := &disq.Message{
+		Ctx:      context.Background(),
+		TaskName: TestHandler.Name(),
+		Args:     []interface{}{value},
+		Delay:    delay,
+	}
+	tests := []struct {
+		name      string
+		queueName string
+		config    *RedisConfig
+		tFN       func(context.Context, *RedisConfig, *disq.Message) (bool, error)
+		expect    bool
+	}{
+		{
+			name:      "stream message with delay",
+			queueName: uuid.NewString(),
+			config: &RedisConfig{
+				Name:  uuid.NewString(),
+				Redis: client,
+			},
+			tFN: func(ctx context.Context, config *RedisConfig, msg *disq.Message) (bool, error) {
+
+				b := NewStream(config)
+				err := b.Publish(msg)
+				if err != nil {
+					return false, err
+				}
+				start := time.Now()
+				b.Consume(ctx)
+
+				tm := <-handlerCh
+				sub := tm.Sub(start)
+				return disq.DurEqual(msg.Delay, sub, 1), nil
+			},
+			expect: true,
 		},
 	}
 

@@ -123,7 +123,12 @@ func (b *LocalStorage) Publish(msg *disq.Message) error {
 func (b *LocalStorage) FetchN(
 	ctx context.Context, n int, waitTimeout time.Duration,
 ) ([]disq.Message, error) {
-	return nil, errors.New("not implmented")
+	msgs := make([]disq.Message, n)
+	for i := 0; i < n; i++ {
+		msg := <-b.buffer
+		msgs[i] = *msg
+	}
+	return msgs, nil
 }
 
 //deletes the message from the queue.
