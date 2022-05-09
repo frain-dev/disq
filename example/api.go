@@ -1,4 +1,4 @@
-package test
+package example
 
 import (
 	"context"
@@ -53,7 +53,7 @@ func NewBroker(c *redis.Client, concurency int, name string) *RedisBroker {
 		Concurency:  int32(concurency),
 		StreamGroup: "disq:",
 	}
-	b := redisBroker.New(&cfg)
+	b := redisBroker.NewStream(&cfg)
 
 	return &RedisBroker{
 		Name:   name,

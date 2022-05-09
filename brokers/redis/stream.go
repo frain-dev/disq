@@ -2,8 +2,7 @@ package redis
 
 import (
 	"context"
-	"math/rand"
-	"os"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,17 +11,20 @@ import (
 
 	"github.com/frain-dev/disq"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/vmihailenco/msgpack"
 )
 
-type Broker struct {
+// Broker based on redis STREAM and ZSET.
+// Implements a delayed queue with support for retries.
+type Stream struct {
 	Redis disq.Redis
 
 	zset                string
 	stream              string
 	streamGroup         string
-	streamConsumer      string
+	consumerName        string
 	opts                *RedisConfig
 	buffer              chan *disq.Message
 	processed           uint32
@@ -33,25 +35,25 @@ type Broker struct {
 	SchedulerLockPrefix string
 }
 
-func New(cfg *RedisConfig) disq.Broker {
+func NewStream(cfg *RedisConfig) disq.Broker {
 
 	err := cfg.Init()
 	if err != nil {
-		log.Errorf("Error:", err)
+		log.Errorf("Error: %v", err)
 	}
-	broker := &Broker{
-		Redis:          cfg.Redis,
-		zset:           cfg.Name + ":zset",
-		stream:         cfg.Name + ":stream",
-		streamGroup:    cfg.StreamGroup,
-		streamConsumer: ConsumerName(),
-		opts:           cfg,
-		buffer:         make(chan *disq.Message, cfg.BufferSize),
+	broker := &Stream{
+		Redis:        cfg.Redis,
+		zset:         cfg.Name + ":zset",
+		stream:       cfg.Name + ":stream",
+		streamGroup:  cfg.StreamGroup,
+		consumerName: disq.ConsumerName(),
+		opts:         cfg,
+		buffer:       make(chan *disq.Message, cfg.BufferSize),
 	}
 	return broker
 }
 
-func (b *Broker) Consume(ctx context.Context) {
+func (b *Stream) Consume(ctx context.Context) {
 	for id := 0; id < int(b.opts.Concurency); id++ {
 		b.wg.Add(1)
 		go func() {
@@ -59,7 +61,7 @@ func (b *Broker) Consume(ctx context.Context) {
 			for {
 				select {
 				case msg := <-b.buffer:
-					b.Process(msg)
+					_ = b.Process(msg)
 				case <-b.quit:
 					return
 				}
@@ -90,9 +92,15 @@ func (b *Broker) Consume(ctx context.Context) {
 		defer b.wg.Done()
 		disq.Scheduler("delayed", b.Redis.(*redis.Client), b.scheduleDelayed)
 	}()
+
+	b.wg.Add(1)
+	go func() {
+		defer b.wg.Done()
+		disq.Scheduler("pending", b.Redis.(*redis.Client), b.schedulePending)
+	}()
 }
 
-func (b *Broker) Process(msg *disq.Message) error {
+func (b *Stream) Process(msg *disq.Message) error {
 	tasks := &disq.Tasks
 	task, err := tasks.LoadTask(msg.TaskName)
 	if err != nil {
@@ -107,6 +115,7 @@ func (b *Broker) Process(msg *disq.Message) error {
 		err := b.Delete(msg)          //delete from queue
 		if err != nil {
 			disq.Logger.Printf("delete failed: %s", err)
+			return err
 		}
 		return nil
 	}
@@ -122,7 +131,7 @@ func (b *Broker) Process(msg *disq.Message) error {
 		if err != nil {
 			disq.Logger.Printf("requeue failed: %s", err)
 		}
-		return msgErr
+		return err
 	}
 
 	atomic.AddUint32(&b.processed, 1)
@@ -133,7 +142,7 @@ func (b *Broker) Process(msg *disq.Message) error {
 	return msg.Err
 }
 
-func (b *Broker) fetchMessages(
+func (b *Stream) fetchMessages(
 	ctx context.Context, timer *time.Timer, timeout time.Duration,
 ) (bool, error) {
 	size := b.opts.ReservationSize
@@ -167,7 +176,12 @@ func (b *Broker) fetchMessages(
 	return false, nil
 }
 
-func (b *Broker) Publish(msg *disq.Message) error {
+func (b *Stream) Publish(msg *disq.Message) error {
+
+	if msg.ID == "" {
+		msg.ID = uuid.NewString()
+	}
+
 	body, err := msgpack.Marshal((*disq.MessageRaw)(msg))
 	if err != nil {
 		return err
@@ -191,13 +205,13 @@ func (b *Broker) Publish(msg *disq.Message) error {
 }
 
 //Fetch N messages from the stream.
-func (b *Broker) FetchN(
+func (b *Stream) FetchN(
 	ctx context.Context, n int, waitTimeout time.Duration,
 ) ([]disq.Message, error) {
 	streams, err := b.Redis.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Streams:  []string{b.stream, ">"},
 		Group:    b.streamGroup,
-		Consumer: b.streamConsumer,
+		Consumer: b.consumerName,
 		Count:    int64(n),
 		Block:    waitTimeout,
 	}).Result()
@@ -218,7 +232,7 @@ func (b *Broker) FetchN(
 		xmsg := &stream.Messages[i]
 		msg := &msgs[i]
 		msg.Ctx = ctx
-		err = unmarshalMessage(msg, xmsg)
+		err = StreamUnmarshalMessage(msg, xmsg)
 		if err != nil {
 			msg.Err = err
 		}
@@ -228,7 +242,7 @@ func (b *Broker) FetchN(
 }
 
 //Ack and delete a message then add it back to the queue
-func (b *Broker) Requeue(msg *disq.Message) error {
+func (b *Stream) Requeue(msg *disq.Message) error {
 	if err := b.Redis.XAck(msg.Ctx, b.stream, b.streamGroup, msg.ID).Err(); err != nil {
 		return err
 	}
@@ -246,15 +260,15 @@ func (b *Broker) Requeue(msg *disq.Message) error {
 	return err
 }
 
-// Delete deletes the message from the queue.
-func (b *Broker) Delete(msg *disq.Message) error {
+//deletes the message from the queue.
+func (b *Stream) Delete(msg *disq.Message) error {
 	if err := b.Redis.XAck(context.Background(), b.stream, b.streamGroup, msg.ID).Err(); err != nil {
 		return err
 	}
 	return b.Redis.XDel(context.Background(), b.stream, msg.ID).Err()
 }
 
-func (b *Broker) Stop() error {
+func (b *Stream) Stop() error {
 	go func() {
 		b.quit <- true
 	}()
@@ -262,25 +276,25 @@ func (b *Broker) Stop() error {
 }
 
 // Purge deletes all messages from the queue.
-func (b *Broker) Purge() error {
+func (b *Stream) Purge() error {
 	ctx := context.TODO()
 	_ = b.Redis.Del(ctx, b.zset).Err()
 	_ = b.Redis.XTrim(ctx, b.stream, 0).Err()
 	return nil
 }
 
-func (b *Broker) Len() (int, error) {
+func (b *Stream) Len() (int, error) {
 	n, err := b.Redis.XLen(context.TODO(), b.stream).Result()
 	return int(n), err
 }
 
-func (b *Broker) createStreamGroup(ctx context.Context) {
+func (b *Stream) createStreamGroup(ctx context.Context) {
 	_ = b.Redis.XGroupCreateMkStream(ctx, b.stream, b.streamGroup, "0").Err()
 }
 
-func (b *Broker) Stats() *disq.Stats {
+func (b *Stream) Stats() *disq.Stats {
 	return &disq.Stats{
-		Name:      b.streamConsumer,
+		Name:      b.consumerName,
 		Processed: atomic.LoadUint32(&b.processed),
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
@@ -291,7 +305,7 @@ func unixMs(tm time.Time) int64 {
 	return tm.UnixNano() / int64(time.Millisecond)
 }
 
-func unmarshalMessage(msg *disq.Message, xmsg *redis.XMessage) error {
+func StreamUnmarshalMessage(msg *disq.Message, xmsg *redis.XMessage) error {
 	body := xmsg.Values["body"].(string)
 	if err := msgpack.Unmarshal([]byte(body), (*disq.MessageRaw)(msg)); err != nil {
 		return err
@@ -300,14 +314,7 @@ func unmarshalMessage(msg *disq.Message, xmsg *redis.XMessage) error {
 	return nil
 }
 
-func ConsumerName() string {
-	s, _ := os.Hostname()
-	s += ":pid:" + strconv.Itoa(os.Getpid())
-	s += ":" + strconv.Itoa(rand.Int())
-	return s
-}
-
-func (b *Broker) scheduleDelayed(ctx context.Context) (int, error) {
+func (b *Stream) scheduleDelayed(ctx context.Context) (int, error) {
 	tm := time.Now()
 	max := strconv.FormatInt(unixMs(tm), 10)
 	bodies, err := b.Redis.ZRangeByScore(ctx, b.zset, &redis.ZRangeBy{
@@ -335,4 +342,56 @@ func (b *Broker) scheduleDelayed(ctx context.Context) (int, error) {
 	}
 
 	return len(bodies), nil
+}
+
+func (b *Stream) schedulePending(ctx context.Context) (int, error) {
+	tm := time.Now().Add(-b.opts.WaitTimeout)
+	end := strconv.FormatInt(unixMs(tm), 10)
+
+	pending, err := b.Redis.XPendingExt(ctx, &redis.XPendingExtArgs{
+		Stream: b.stream,
+		Group:  b.streamGroup,
+		Start:  "-",
+		End:    end,
+		Count:  100,
+	}).Result()
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "NOGROUP") {
+			b.createStreamGroup(ctx)
+
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	for i := range pending {
+		xmsgInfo := &pending[i]
+		id := xmsgInfo.ID
+
+		xmsgs, err := b.Redis.XRangeN(ctx, b.stream, id, id, 1).Result()
+		if err != nil {
+			return 0, err
+		}
+
+		if len(xmsgs) != 1 {
+			err := fmt.Errorf("disq: can't find pending message id=%q in stream=%q",
+				id, b.stream)
+			return 0, err
+		}
+
+		xmsg := &xmsgs[0]
+		msg := new(disq.Message)
+		msg.Ctx = ctx
+		err = StreamUnmarshalMessage(msg, xmsg)
+		if err != nil {
+			return 0, err
+		}
+
+		err = b.Requeue(msg)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(pending), nil
 }

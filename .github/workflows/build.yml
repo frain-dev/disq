@@ -1,0 +1,48 @@
+name: Build and run all tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.16.x, 1.17.x]
+        os: [ubuntu-latest]
+        redis-version: ["6.2.6"]
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Redis v${{ matrix.redis-version }}
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: ${{ matrix.redis-version }}
+          redis-port: 6379
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=tag::$(echo ${GITHUB_SHA:8})
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        
+      - name: Get and verify dependencies
+        run: go mod download && go mod verify
+
+      - name: Run integration tests
+        run: go test -tags integration -v ./...
+

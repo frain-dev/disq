@@ -15,8 +15,10 @@ type Broker interface {
 	Consume(context.Context)
 	Publish(*Message) error
 	Process(*Message) error
+	FetchN(context.Context, int, time.Duration) ([]Message, error)
 	Delete(*Message) error
 	Stats() *Stats
+	Len() (int, error)
 	Stop() error
 }
 
@@ -53,4 +55,14 @@ type Redis interface {
 	ZRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) *redis.StringSliceCmd
 	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
 	XInfoConsumers(ctx context.Context, key string, group string) *redis.XInfoConsumersCmd
+
+	//List methods
+	LIndex(ctx context.Context, key string, index int64) *redis.StringCmd
+	LLen(ctx context.Context, key string) *redis.IntCmd
+	LPop(ctx context.Context, key string) *redis.StringCmd
+	LPopCount(ctx context.Context, key string, count int) *redis.StringSliceCmd
+	LPush(ctx context.Context, key string, values ...interface{}) *redis.IntCmd
+	LRange(ctx context.Context, key string, start, stop int64) *redis.StringSliceCmd
+	LRem(ctx context.Context, key string, count int64, value interface{}) *redis.IntCmd
+	LTrim(ctx context.Context, key string, start, stop int64) *redis.StatusCmd
 }

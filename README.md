@@ -22,7 +22,8 @@ var CountHandler, _ = disq.RegisterTask(&disq.TaskOptions{
 	},
 	RetryLimit: 3,
 })
-//Create a message
+
+//Create a Message
 var value = fmt.Sprint("message_", uuid.NewString())
 var ctx = context.Background()
 
