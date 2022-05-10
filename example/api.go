@@ -64,7 +64,7 @@ func NewBroker(c *redis.Client, concurency int, name string) *RedisBroker {
 
 //create new worker
 func NewWorker(c *redis.Client, brokers []disq.Broker) *Worker {
-	w := disq.NewWorker(brokers, disq.WorkerConfig{})
+	w := disq.NewWorker(brokers)
 
 	return &Worker{
 		inner:  c,

@@ -25,6 +25,7 @@ type List struct {
 	processed    uint32
 	retries      uint32
 	fails        uint32
+	isConsuming  bool
 	wg           sync.WaitGroup
 	quit         chan bool
 }
@@ -78,6 +79,7 @@ func (b *List) Consume(ctx context.Context) {
 			}
 		}
 	}()
+	b.isConsuming = true
 }
 
 func (b *List) Process(msg *disq.Message) error {
@@ -91,8 +93,8 @@ func (b *List) Process(msg *disq.Message) error {
 
 	// retry exeeded
 	if msg.RetryCount >= task.RetryLimit() {
-		atomic.AddUint32(&b.fails, 1) //count as fail
-		err := b.Delete(msg)          //delete from queue
+		atomic.AddUint32(&b.fails, 1)
+		err := b.Delete(msg)
 		if err != nil {
 			disq.Logger.Printf("delete failed: %s", err)
 			return err
@@ -128,7 +130,7 @@ func (b *List) Requeue(msg *disq.Message) error {
 		return err
 	}
 	//Requeue
-	msg.RetryCount++ //to know how many times it has been retried.
+	msg.RetryCount++
 	err = b.Publish(msg)
 	if err != nil {
 		return err
@@ -209,7 +211,6 @@ func (b *List) FetchN(
 	return msgs, nil
 }
 
-//deletes the message from the queue.
 func (b *List) Delete(msg *disq.Message) error {
 	body, err := msgpack.Marshal((*disq.MessageRaw)(msg))
 	if err != nil {
@@ -225,10 +226,10 @@ func (b *List) Stop() error {
 	go func() {
 		b.quit <- true
 	}()
+	b.isConsuming = false
 	return nil
 }
 
-// Purge deletes all messages from the queue.
 func (b *List) Purge() error {
 	ctx := context.TODO()
 	_ = b.Redis.Del(ctx, b.list).Err()
@@ -248,6 +249,10 @@ func (b *List) Stats() *disq.Stats {
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
 	}
+}
+
+func (b *List) Status() bool {
+	return b.isConsuming
 }
 
 func ListUnmarshalMessage(msg *disq.Message, body string) error {

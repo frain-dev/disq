@@ -24,6 +24,5 @@ func (ls *LocalStorageConfig) Init() error {
 		ls.BufferSize = 100000
 	}
 	ls.inited = true
-
 	return nil
 }

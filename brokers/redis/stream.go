@@ -31,6 +31,7 @@ type Stream struct {
 	retries             uint32
 	fails               uint32
 	wg                  sync.WaitGroup
+	isConsuming         bool
 	quit                chan bool
 	SchedulerLockPrefix string
 }
@@ -98,6 +99,7 @@ func (b *Stream) Consume(ctx context.Context) {
 		defer b.wg.Done()
 		disq.Scheduler("pending", b.Redis.(*redis.Client), b.schedulePending)
 	}()
+	b.isConsuming = true
 }
 
 func (b *Stream) Process(msg *disq.Message) error {
@@ -111,8 +113,8 @@ func (b *Stream) Process(msg *disq.Message) error {
 
 	// retry exeeded
 	if msg.RetryCount >= task.RetryLimit() {
-		atomic.AddUint32(&b.fails, 1) //count as fail
-		err := b.Delete(msg)          //delete from queue
+		atomic.AddUint32(&b.fails, 1)
+		err := b.Delete(msg)
 		if err != nil {
 			disq.Logger.Printf("delete failed: %s", err)
 			return err
@@ -216,7 +218,7 @@ func (b *Stream) FetchN(
 		Block:    waitTimeout,
 	}).Result()
 	if err != nil {
-		if err == redis.Nil { // timeout
+		if err == redis.Nil {
 			return nil, nil
 		}
 		if strings.HasPrefix(err.Error(), "NOGROUP") {
@@ -272,7 +274,10 @@ func (b *Stream) Stop() error {
 	go func() {
 		b.quit <- true
 	}()
-	return nil
+	err := b.Redis.XGroupDelConsumer(
+		context.TODO(), b.stream, b.streamGroup, b.consumerName).Err()
+	b.isConsuming = false
+	return err
 }
 
 // Purge deletes all messages from the queue.
@@ -299,6 +304,10 @@ func (b *Stream) Stats() *disq.Stats {
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
 	}
+}
+
+func (b *Stream) Status() bool {
+	return b.isConsuming
 }
 
 func unixMs(tm time.Time) int64 {

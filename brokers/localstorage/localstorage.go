@@ -15,14 +15,15 @@ import (
 // Broker based on in-memory buffer only.
 // Implements a FIFO queue with support for delays and retries.
 type LocalStorage struct {
-	opts      *LocalStorageConfig
-	buffer    chan *disq.Message
-	consumer  string
-	processed uint32
-	retries   uint32
-	fails     uint32
-	wg        sync.WaitGroup
-	quit      chan bool
+	opts        *LocalStorageConfig
+	buffer      chan *disq.Message
+	consumer    string
+	processed   uint32
+	retries     uint32
+	fails       uint32
+	isConsuming bool
+	wg          sync.WaitGroup
+	quit        chan bool
 }
 
 func New(cfg *LocalStorageConfig) disq.Broker {
@@ -55,6 +56,7 @@ func (b *LocalStorage) Consume(ctx context.Context) {
 			}
 		}()
 	}
+	b.isConsuming = true
 }
 
 func (b *LocalStorage) Process(msg *disq.Message) error {
@@ -131,20 +133,20 @@ func (b *LocalStorage) FetchN(
 	return msgs, nil
 }
 
-//deletes the message from the queue.
 func (b *LocalStorage) Delete(msg *disq.Message) error {
-	return errors.New("not implmented")
+	return errors.New("not implemented")
 }
 
 func (b *LocalStorage) Stop() error {
 	go func() {
 		b.quit <- true
 	}()
+	b.isConsuming = false
 	return nil
 }
 
 func (b *LocalStorage) Purge() error {
-	return errors.New("not implmented")
+	return errors.New("not implemented")
 }
 
 func (b *LocalStorage) Len() (int, error) {
@@ -159,4 +161,8 @@ func (b *LocalStorage) Stats() *disq.Stats {
 		Retries:   atomic.LoadUint32(&b.retries),
 		Fails:     atomic.LoadUint32(&b.fails),
 	}
+}
+
+func (b *LocalStorage) Status() bool {
+	return b.isConsuming
 }
