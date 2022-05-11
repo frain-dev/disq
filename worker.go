@@ -8,10 +8,7 @@ type Worker struct {
 	brokers []Broker
 }
 
-type WorkerConfig struct {
-}
-
-func NewWorker(brokers []Broker, cfg WorkerConfig) *Worker {
+func NewWorker(brokers []Broker) *Worker {
 	w := &Worker{
 		brokers: brokers,
 	}
@@ -26,15 +23,19 @@ func (w *Worker) Start(ctx context.Context) error {
 	for _, b := range w.brokers {
 		brk := b
 		go func() {
-			brk.Consume(ctx)
+			if !brk.Status() {
+				brk.Consume(ctx)
+			}
 		}()
 	}
 	return nil
 }
 
-func (w *Worker) AddBroker(broker Broker) {
+func (w *Worker) AddBroker(ctx context.Context, broker Broker) {
+	if !broker.Status() {
+		broker.Consume(ctx)
+	}
 	w.brokers = append(w.brokers, broker)
-	//ToDo: Start newly added broker
 }
 
 func (w *Worker) Stats() []*Stats {
@@ -50,7 +51,7 @@ func (w *Worker) Stop() error {
 	for _, b := range w.brokers {
 		brk := b
 		go func() {
-			brk.Stop()
+			_ = brk.Stop()
 		}()
 	}
 	return nil

@@ -38,6 +38,7 @@ func main() {
 			}
 		case <-ctx.Done():
 			log.Println("Worker quiting")
+			_ = w.Stop()
 			return
 		}
 	}

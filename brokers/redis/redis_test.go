@@ -59,6 +59,7 @@ func TestConsume(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -84,6 +85,7 @@ func TestConsume(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -157,6 +159,7 @@ func TestFetchNandProcess(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -187,6 +190,7 @@ func TestFetchNandProcess(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -252,6 +256,7 @@ func TestPublish(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(1),
@@ -274,6 +279,7 @@ func TestPublish(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(1),
@@ -351,6 +357,7 @@ func TestRequeue(t *testing.T) {
 				}
 
 				count := msgs[0].RetryCount
+				_ = b.Stop()
 				return fmt.Sprint(count), nil
 			},
 			expect: fmt.Sprint(1),
@@ -384,6 +391,7 @@ func TestRequeue(t *testing.T) {
 					return "", nil
 				}
 				count := msgs[0].RetryCount
+				_ = b.Stop()
 				return fmt.Sprint(count), nil
 			},
 			expect: fmt.Sprint(1),
@@ -453,6 +461,7 @@ func TestDelay(t *testing.T) {
 
 				tm := <-handlerCh
 				sub := tm.Sub(start)
+				_ = b.Stop()
 				return disq.DurEqual(msg.Delay, sub, 1), nil
 			},
 			expect: true,
@@ -527,6 +536,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -553,6 +563,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -623,6 +634,7 @@ func TestPurge(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -649,6 +661,7 @@ func TestPurge(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),

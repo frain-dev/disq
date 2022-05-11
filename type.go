@@ -18,6 +18,7 @@ type Broker interface {
 	FetchN(context.Context, int, time.Duration) ([]Message, error)
 	Delete(*Message) error
 	Stats() *Stats
+	Status() bool
 	Len() (int, error)
 	Stop() error
 }

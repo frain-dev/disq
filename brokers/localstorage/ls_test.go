@@ -53,6 +53,7 @@ func TestConsume(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -113,6 +114,7 @@ func TestPublish(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(1),
@@ -181,6 +183,7 @@ func TestFetchNandProcess(t *testing.T) {
 				if err != nil {
 					return "", err
 				}
+				_ = b.Stop()
 				return fmt.Sprint(length), nil
 			},
 			expect: fmt.Sprint(0),
@@ -253,6 +256,7 @@ func TestRequeue(t *testing.T) {
 				}
 
 				count := msgs[0].RetryCount
+				_ = b.Stop()
 				return fmt.Sprint(count), nil
 			},
 			expect: fmt.Sprint(1),
@@ -317,6 +321,7 @@ func TestDelay(t *testing.T) {
 
 				tm := <-handlerCh
 				sub := tm.Sub(start)
+				_ = b.Stop()
 				return disq.DurEqual(msg.Delay, sub, 3), nil
 			},
 			expect: true,

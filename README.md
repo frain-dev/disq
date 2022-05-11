@@ -1,5 +1,5 @@
 # disq
-A proof-of-concept implementaion of disq, a custom job-queue library for Convoy. This POC makes use of the redis backend only.
+A a custom job-queue library for Convoy. Provides in-memory (localstorage) and redis (stream and list) backends only for now.
 
 # Usage
 
@@ -33,7 +33,7 @@ var msg := &disq.Message{
     Args:     []interface{}{value},
 }
 
-// Create a Broker
+// Create a (redis stream) Broker
 cfg := redisBroker.RedisConfig{
 		Redis:       c, //redis client
 		Name:        name, //name of queue
@@ -41,7 +41,7 @@ cfg := redisBroker.RedisConfig{
 		StreamGroup: "disq:",
 	}
 
-var broker = redisBroker.New(&cfg)
+var broker = redisBroker.NewStream(&cfg)
 
 broker.publish(msg)
 broker.Consume(ctx)
@@ -54,11 +54,10 @@ You can create multiple brokers, create a worker and manage those brokers with t
 ```go
 import (
     "github.com/frain-dev/disq"
-    redisBroker "github.com/frain-dev/disq/brokers/redis"
 ) 
 //Create a worker
 var brokers = []disq.Broker{broker1, broker2, broker3}
-var w = disq.NewWorker(brokers, disq.WorkerConfig{})
+var w = disq.NewWorker(brokers)
 
 //start processing messages
 var err = w.Start(ctx)
@@ -68,7 +67,7 @@ if err != nil {
 
 //Get stats from all brokers
 for i, b := range w.Brokers() {
-    var len, _ = b.(*redisBroker.Broker).Len()
+    var len, _ = b.Len()
     log.Printf("Broker_%d Queue Size: %+v", i, len)
     log.Printf("Broker_%d Stats: %+v\n\n", i, b.Stats())
 }
