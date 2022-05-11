@@ -10,14 +10,15 @@ import (
 )
 
 type RedisConfig struct {
-	Name            string
-	StreamGroup     string
-	Concurency      int32
-	ReservationSize int
-	WaitTimeout     time.Duration
-	BufferSize      int
-	Redis           disq.Redis
-	inited          bool
+	Name               string
+	StreamGroup        string
+	Concurency         int32
+	ReservationSize    int
+	WaitTimeout        time.Duration
+	ReservationTimeout time.Duration
+	BufferSize         int
+	Redis              disq.Redis
+	inited             bool
 }
 
 func (rc *RedisConfig) Init() error {
@@ -38,6 +39,10 @@ func (rc *RedisConfig) Init() error {
 
 	if rc.ReservationSize == 0 {
 		rc.ReservationSize = 1000
+	}
+
+	if rc.ReservationTimeout == 0 {
+		rc.ReservationTimeout = 10 * time.Minute
 	}
 
 	if rc.BufferSize == 0 {
