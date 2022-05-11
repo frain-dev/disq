@@ -1,5 +1,10 @@
 # disq
-A a custom job-queue library for Convoy. Provides in-memory (localstorage) and redis (stream and list) backends only for now.
+A custom job-queue library for Convoy. Provides in-memory (localstorage) and redis (stream and list) backends only for now.
+
+# Features  
+- Redis (Stream and List), and in-memory backends.
+- Message Delay
+- Automatic retries
 
 # Usage
 
@@ -43,9 +48,10 @@ cfg := redisBroker.RedisConfig{
 
 var broker = redisBroker.NewStream(&cfg)
 
+// Publish and Consume with the broker
 broker.publish(msg)
 broker.Consume(ctx)
-broker.Stats()
+broker.Stats() //View consumer stats
 ```
 
 ## Create multiple brokers and assign them to a worker  
@@ -79,3 +85,12 @@ There is a full working example in [test](./test/). To run it;
 go run test/api/api.go 
 go run test/worker/worker.go
 ```
+
+## Contributing
+
+Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE) for more information.

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Message is used as a uniform structure for publishing and consuming messages from a queue.
+// Message is used as a uniform object for publishing and consuming messages from a queue.
 type Message struct {
 	Ctx context.Context
 

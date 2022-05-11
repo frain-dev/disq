@@ -76,7 +76,7 @@ func (b *Stream) Consume(ctx context.Context) {
 		timer := time.NewTimer(time.Minute)
 		timer.Stop()
 		for {
-			timeout, err := b.fetchMessages(ctx, timer, time.Minute*10)
+			timeout, err := b.fetchMessages(ctx, timer, b.opts.ReservationTimeout)
 			const backoff = time.Second
 			if err != nil {
 				time.Sleep(backoff)

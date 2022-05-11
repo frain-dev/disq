@@ -68,7 +68,7 @@ func (b *List) Consume(ctx context.Context) {
 		timer := time.NewTimer(time.Minute)
 		timer.Stop()
 		for {
-			timeout, err := b.fetchMessages(ctx, timer, time.Minute*10)
+			timeout, err := b.fetchMessages(ctx, timer, b.opts.ReservationTimeout)
 			const backoff = time.Second
 			if err != nil {
 				time.Sleep(backoff)
@@ -91,7 +91,6 @@ func (b *List) Process(msg *disq.Message) error {
 		return err
 	}
 
-	// retry exeeded
 	if msg.RetryCount >= task.RetryLimit() {
 		atomic.AddUint32(&b.fails, 1)
 		err := b.Delete(msg)
@@ -105,7 +104,6 @@ func (b *List) Process(msg *disq.Message) error {
 	msgErr := task.HandleMessage(msg)
 
 	if msgErr != nil {
-		//retry
 		atomic.AddUint32(&b.retries, 1)
 		msg.Err = msgErr
 		err := b.Requeue(msg)
@@ -129,7 +127,6 @@ func (b *List) Requeue(msg *disq.Message) error {
 	if err != nil {
 		return err
 	}
-	//Requeue
 	msg.RetryCount++
 	err = b.Publish(msg)
 	if err != nil {
