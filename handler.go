@@ -137,6 +137,12 @@ func (h *reflectFunc) fnArgs(msg *Message) ([]reflect.Value, error) {
 
 	for i := 0; i < len(in); i++ {
 		arg := reflect.New(h.ft.In(inStart + i)).Elem()
+		err = dec.DecodeValue(arg)
+		if err != nil {
+			err = fmt.Errorf(
+				"disq: decoding arg=%d failed (data=%.100x): %s", i, b, err)
+			return nil, err
+		}
 		in[i] = arg
 	}
 

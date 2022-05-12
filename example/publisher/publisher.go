@@ -11,8 +11,7 @@ import (
 )
 
 func main() {
-
-	count := 50000000
+	count := 50
 	go func() {
 		for i := 0; i < count; i++ {
 			value := fmt.Sprint("message_", uuid.NewString())
@@ -21,7 +20,10 @@ func main() {
 			msg := &disq.Message{
 				Ctx:      ctx,
 				TaskName: example.CountHandler.Name(),
-				Args:     []interface{}{value},
+				Args: []interface{}{&example.MsgValue{
+					Name:  "test",
+					Value: value,
+				}},
 				// Delay:    delay,
 			}
 			err := example.RWorker.Worker.Brokers()[0].Publish(msg)
@@ -41,7 +43,10 @@ func main() {
 				msg := &disq.Message{
 					Ctx:      ctx,
 					TaskName: example.CountHandler.Name(),
-					Args:     []interface{}{value},
+					Args: []interface{}{&example.MsgValue{
+						Name:  "test",
+						Value: value,
+					}},
 					// Delay:    delay,
 				}
 				err := example.RWorker.Worker.Brokers()[1].Publish(msg)
@@ -64,7 +69,10 @@ func main() {
 				msg := &disq.Message{
 					Ctx:      ctx,
 					TaskName: example.CountHandler.Name(),
-					Args:     []interface{}{value},
+					Args: []interface{}{&example.MsgValue{
+						Name:  "test",
+						Value: value,
+					}},
 					// Delay:    delay,
 				}
 				err := example.RWorker.Worker.Brokers()[2].Publish(msg)
