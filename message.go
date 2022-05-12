@@ -13,16 +13,18 @@ type Message struct {
 
 	ID string
 
-	TaskName string
+	Name string
 
-	// Delay specifies the duration the worker must wait
+	// Delay specifies the duration the queue must wait
 	// before executing the message.
 	Delay time.Duration
 
-	// Args passed to the handler.
-	Args    []interface{}
+	Args []interface{}
+
 	ArgsBin []byte
-	// The number of times the message has been reserved or released.
+
+	TaskName string
+
 	RetryCount int
 
 	//Execution time need for localstorage delays
