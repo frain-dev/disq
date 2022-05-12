@@ -72,16 +72,26 @@ func NewWorker(c *redis.Client, brokers []disq.Broker) *Worker {
 	}
 }
 
-//create task
-var CountHandler, _ = disq.RegisterTask(&disq.TaskOptions{
-	Name: "CountHandler",
-	Handler: func(name string) error {
+type MsgValue struct {
+	Name  string
+	Value string
+}
+
+func counthandler() func(job *MsgValue) error {
+	return func(msgval *MsgValue) error {
 		//time.Sleep(time.Duration(10) * time.Second)
-		// fmt.Println("Hello", name)
+		fmt.Println("Hello", msgval.Value)
 		// return errors.New("error")
 		// return &EndpointError{Err: errors.New("Error"), delay: time.Second * 60}
 		return nil
-	},
+	}
+
+}
+
+//create task
+var CountHandler, _ = disq.RegisterTask(&disq.TaskOptions{
+	Name:       "CountHandler",
+	Handler:    counthandler(),
 	RetryLimit: 3,
 })
 
