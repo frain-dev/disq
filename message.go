@@ -9,28 +9,28 @@ import (
 
 // Message is used as a uniform object for publishing and consuming messages from a queue.
 type Message struct {
-	Ctx context.Context `msgpack:"-"`
+	Ctx context.Context
 
-	ID string `msgpack:"1,omitempty,alias:ID"`
+	ID string
 
-	Name string `msgpack:"-"`
+	Name string
 
 	// Delay specifies the duration the queue must wait
 	// before executing the message.
-	Delay time.Duration `msgpack:"-"`
+	Delay time.Duration
 
-	Args []interface{} `msgpack:"-"`
+	Args []interface{}
 
-	ArgsBin []byte `msgpack:"3,alias:ArgsBin"`
+	ArgsBin []byte
 
-	TaskName string `msgpack:"5,alias:TaskName"`
+	TaskName string
 
 	RetryCount int
 
 	//Execution time need for localstorage delays
 	ExecutionTime time.Time
 
-	Err error `msgpack:"-"`
+	Err error
 }
 
 func NewMessage(ctx context.Context, args ...interface{}) *Message {
