@@ -13,7 +13,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/vmihailenco/msgpack"
 )
 
 // Broker based on redis STREAM and ZSET.
@@ -316,7 +315,8 @@ func unixMs(tm time.Time) int64 {
 
 func StreamUnmarshalMessage(msg *disq.Message, xmsg *redis.XMessage) error {
 	body := xmsg.Values["body"].(string)
-	if err := msgpack.Unmarshal([]byte(body), (*disq.MessageRaw)(msg)); err != nil {
+	err := msg.UnmarshalBinary(disq.StringToBytes(body))
+	if err != nil {
 		return err
 	}
 	msg.ID = xmsg.ID

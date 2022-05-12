@@ -253,7 +253,8 @@ func (b *List) Status() bool {
 }
 
 func ListUnmarshalMessage(msg *disq.Message, body string) error {
-	if err := msgpack.Unmarshal([]byte(body), (*disq.MessageRaw)(msg)); err != nil {
+	err := msg.UnmarshalBinary(disq.StringToBytes(body))
+	if err != nil {
 		return err
 	}
 	return nil
