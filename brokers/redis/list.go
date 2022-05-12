@@ -174,7 +174,7 @@ func (b *List) Publish(msg *disq.Message) error {
 		msg.ID = uuid.NewString()
 	}
 
-	body, err := msgpack.Marshal((*disq.MessageRaw)(msg))
+	body, err := msg.MarshalBinary()
 	if err != nil {
 		return err
 	}
