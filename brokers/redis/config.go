@@ -30,7 +30,7 @@ func (rc *RedisConfig) Init() error {
 	}
 
 	if rc.StreamGroup == "" {
-		rc.StreamGroup = "disq:"
+		rc.StreamGroup = "disq"
 	}
 
 	if rc.Concurency == 0 {

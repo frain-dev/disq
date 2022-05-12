@@ -38,7 +38,7 @@ func NewList(cfg *RedisConfig) disq.Broker {
 	}
 	broker := &List{
 		Redis:        cfg.Redis,
-		list:         cfg.Name + ":list",
+		list:         "disq:" + "{" + cfg.Name + ":list",
 		opts:         cfg,
 		consumerName: disq.ConsumerName(),
 		buffer:       make(chan *disq.Message, cfg.BufferSize),
