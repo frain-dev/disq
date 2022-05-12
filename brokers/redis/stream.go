@@ -44,8 +44,8 @@ func NewStream(cfg *RedisConfig) disq.Broker {
 	}
 	broker := &Stream{
 		Redis:        cfg.Redis,
-		zset:         cfg.Name + ":zset",
-		stream:       cfg.Name + ":stream",
+		zset:         "disq:" + "{" + cfg.Name + "}:zset",
+		stream:       "disq:" + "{" + cfg.Name + "}:stream",
 		streamGroup:  cfg.StreamGroup,
 		consumerName: disq.ConsumerName(),
 		opts:         cfg,
