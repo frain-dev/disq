@@ -90,6 +90,10 @@ go run test/worker/worker.go
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
+## Credits
+
+- [Frain](https://github.com/frain-dev)
+- [taskq](https://github.com/vmihailenco/taskq)
 
 ## License
 

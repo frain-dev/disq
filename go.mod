@@ -8,7 +8,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
-	go.mongodb.org/mongo-driver v1.9.1
 )
 
 require (
