@@ -117,7 +117,7 @@ func (h *reflectFunc) fnArgs(msg *Message) ([]reflect.Value, error) {
 		}
 	}
 
-	b, err := msgpack.Marshal(msg.Args)
+	b, err := msg.MarshalArgs()
 	if err != nil {
 		return nil, err
 	}
