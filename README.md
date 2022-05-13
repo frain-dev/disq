@@ -1,5 +1,5 @@
 # disq
-A custom job-queue library for Convoy. Provides in-memory (localstorage) and redis (stream and list) backends only for now.
+A custom job-queue library for [convoy](https://github.com/frain-dev/convoy). Provides in-memory (localstorage) and redis (stream and list) backends only for now.
 
 # Features  
 - Redis (Stream and List), and in-memory backends.
