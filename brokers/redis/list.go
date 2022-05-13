@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/vmihailenco/msgpack"
 )
 
 // Broker based on redis LIST only.
@@ -209,7 +208,7 @@ func (b *List) FetchN(
 }
 
 func (b *List) Delete(msg *disq.Message) error {
-	body, err := msgpack.Marshal((*disq.MessageRaw)(msg))
+	body, err := msg.MarshalBinary()
 	if err != nil {
 		return err
 	}
