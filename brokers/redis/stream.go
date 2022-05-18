@@ -125,8 +125,7 @@ func (b *Stream) Process(msg *disq.Message) error {
 
 	if msgErr != nil {
 		//retry
-		msg.Delay = disq.Delay(msg, msgErr)
-		atomic.AddUint32(&b.retries, 1)
+		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
 		msg.Err = msgErr
 		err := b.Requeue(msg)
 		if err != nil {
@@ -253,7 +252,7 @@ func (b *Stream) Requeue(msg *disq.Message) error {
 		return err
 	}
 	//Requeue
-	msg.RetryCount++ //to know how many times it has been retried.
+	// msg.RetryCount++ //to know how many times it has been retried.
 	err = b.Publish(msg)
 	if err != nil {
 		return err

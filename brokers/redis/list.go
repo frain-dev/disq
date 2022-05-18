@@ -103,7 +103,7 @@ func (b *List) Process(msg *disq.Message) error {
 	msgErr := task.HandleMessage(msg)
 
 	if msgErr != nil {
-		atomic.AddUint32(&b.retries, 1)
+		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
 		msg.Err = msgErr
 		err := b.Requeue(msg)
 		if err != nil {
@@ -126,7 +126,6 @@ func (b *List) Requeue(msg *disq.Message) error {
 	if err != nil {
 		return err
 	}
-	msg.RetryCount++
 	err = b.Publish(msg)
 	if err != nil {
 		return err
