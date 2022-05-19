@@ -125,6 +125,7 @@ func (b *Stream) Process(msg *disq.Message) error {
 
 	if msgErr != nil {
 		//retry
+		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
 		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
 		msg.Err = msgErr
 		err := b.Requeue(msg)
