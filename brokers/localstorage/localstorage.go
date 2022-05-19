@@ -85,8 +85,8 @@ func (b *LocalStorage) Process(msg *disq.Message) error {
 
 	if msgErr != nil {
 		//retry
-		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
 		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
+		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
 		msg.Err = msgErr
 		err := b.Requeue(msg)
 		if err != nil {

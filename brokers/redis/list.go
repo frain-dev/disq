@@ -103,8 +103,8 @@ func (b *List) Process(msg *disq.Message) error {
 	msgErr := task.HandleMessage(msg)
 
 	if msgErr != nil {
-		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
 		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
+		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
 		msg.Err = msgErr
 		err := b.Requeue(msg)
 		if err != nil {
