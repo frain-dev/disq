@@ -1,6 +1,7 @@
 package disq
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -36,4 +37,9 @@ func StringToBytes(s string) []byte {
 			Cap int
 		}{s, len(s)},
 	))
+}
+
+func FormatHandlerError(msg *Message, retrylimit int) error {
+	return fmt.Errorf("task=%q failed (retrycount=%d/%d will retry after delay=%s): reason:%s",
+		msg.TaskName, msg.RetryCount, retrylimit, msg.Delay, msg.Err)
 }

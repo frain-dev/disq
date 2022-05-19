@@ -85,7 +85,8 @@ func (b *LocalStorage) Process(msg *disq.Message) error {
 
 	if msgErr != nil {
 		//retry
-		atomic.AddUint32(&b.retries, 1)
+		disq.Logger.Println(disq.FormatHandlerError(msg, task.RetryLimit()))
+		_ = disq.ErrorHandler(msg, msgErr, &b.retries)
 		msg.Err = msgErr
 		err := b.Requeue(msg)
 		if err != nil {
@@ -100,7 +101,6 @@ func (b *LocalStorage) Process(msg *disq.Message) error {
 
 func (b *LocalStorage) Requeue(msg *disq.Message) error {
 	//Requeue
-	msg.RetryCount++
 	err := b.Publish(msg)
 	if err != nil {
 		return err
