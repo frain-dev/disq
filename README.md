@@ -80,10 +80,10 @@ for i, b := range w.Brokers() {
 ```
 
 ## Full example
-There is a full working example in [test](./test/). To run it; 
+For a full working example see the [example](./example/) folder. To run it; 
 ```bash
-go run test/api/api.go 
-go run test/worker/worker.go
+go run example/publisher/publisher.go 
+go run example/consumer/consumer.go
 ```
 
 ## Contributing
