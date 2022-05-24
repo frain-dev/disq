@@ -138,7 +138,10 @@ func (w *Worker) UpdateMany(ctx context.Context, brokers []disq.Broker) error {
 }
 
 func (w *Worker) DeleteOne(name string) error {
-	w.GetAllBrokers()[name].Stop()
+	err := w.GetAllBrokers()[name].Stop()
+	if err != nil {
+		disq.Logger.Printf("error stopping broker=%s:%s", name, err)
+	}
 	_, loaded := w.m.LoadAndDelete(name)
 	if loaded {
 		disq.Logger.Printf("broker with name=%q deleted", name)
@@ -181,8 +184,12 @@ func (w *Worker) StopAll() error {
 	w.m.Range(func(key, value interface{}) bool {
 		b := value.(disq.Broker)
 		if b.Status() {
-			b.Stop()
-			disq.Logger.Printf("succesfully stopped broker=%s", key)
+			err := b.Stop()
+			if err != nil {
+				disq.Logger.Printf("error stopping broker=%s:%s", key, err)
+			} else {
+				disq.Logger.Printf("succesfully stopped broker=%s", key)
+			}
 		}
 		return true
 	})
@@ -193,8 +200,12 @@ func (w *Worker) StopOne(name string) error {
 	if v, ok := w.m.Load(name); ok {
 		b := v.(disq.Broker)
 		if b.Status() {
-			b.Stop()
-			disq.Logger.Printf("succesfully stopped broker=%s", name)
+			err := b.Stop()
+			if err != nil {
+				return fmt.Errorf("error stopping broker=%s:%s", name, err)
+			} else {
+				disq.Logger.Printf("succesfully stopped broker=%s", name)
+			}
 		}
 		return nil
 	}
