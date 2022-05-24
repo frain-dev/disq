@@ -18,12 +18,8 @@ func main() {
 	// b := example.RQueue.Queue
 	// w.Brokers()[0].(*redisBroker.Broker).Purge()
 
-	err := w.StartAll(ctx)
+	w.StartAll(ctx)
 	// b.Consume(ctx)
-
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	ticker := time.NewTicker(200 * time.Millisecond)
 

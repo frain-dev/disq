@@ -46,7 +46,7 @@ func TestStart(t *testing.T) {
 				_ = b2.Publish(msg)
 				_ = b3.Publish(msg)
 
-				err = w.StartAll(context.Background())
+				w.StartAll(context.Background())
 				if err != nil {
 					t.Fatalf("error starting brokers %s", err)
 				}
@@ -146,10 +146,8 @@ func TestStop(t *testing.T) {
 				_ = b2.Publish(msg)
 				_ = b3.Publish(msg)
 
-				err = w.StartAll(context.Background())
-				if err != nil {
-					t.Fatalf("error starting broker %s", err)
-				}
+				w.StartAll(context.Background())
+
 				err = w.StopAll()
 				if err != nil {
 					t.Fatalf("error stopping broker %s", err)
@@ -187,10 +185,8 @@ func TestStop(t *testing.T) {
 				_ = b2.Publish(msg)
 				_ = b3.Publish(msg)
 
-				err = w.StartAll(context.Background())
-				if err != nil {
-					t.Fatalf("error starting broker %s", err)
-				}
+				w.StartAll(context.Background())
+
 				err = w.StopOne(b1.Name())
 				if err != nil {
 					t.Fatalf("error stopping broker %s", err)
@@ -314,7 +310,7 @@ func TestUpdate(t *testing.T) {
 					Name: uuid.NewString(),
 				})
 				w := NewWorker([]disq.Broker{b1, b2, b3})
-				_ = w.StartAll(ctx)
+				w.StartAll(ctx)
 
 				b_new := redisBroker.NewList(&redisBroker.RedisConfig{
 					Name:       "disqTest",
@@ -352,7 +348,7 @@ func TestUpdate(t *testing.T) {
 					Name: uuid.NewString(),
 				})
 				w := NewWorker([]disq.Broker{b1, b3})
-				_ = w.StartAll(ctx)
+				w.StartAll(ctx)
 
 				err = w.UpdateOne(ctx, b2)
 				if err != nil {
@@ -405,7 +401,7 @@ func TestDelete(t *testing.T) {
 					Name: uuid.NewString(),
 				})
 				w := NewWorker([]disq.Broker{b1, b2, b3})
-				_ = w.StartAll(ctx)
+				w.StartAll(ctx)
 
 				err = w.DeleteOne(b3.Name())
 				if err != nil {
@@ -462,7 +458,7 @@ func TestStats(t *testing.T) {
 				_ = b3.Publish(msg)
 
 				w := NewWorker([]disq.Broker{b1, b2, b3})
-				_ = w.StartAll(ctx)
+				w.StartAll(ctx)
 				time.Sleep(time.Duration(1) * time.Second)
 
 				stats := w.GetAllStats()

@@ -55,7 +55,7 @@ func (w *Worker) Contains(name string) bool {
 	return false
 }
 
-func (w *Worker) StartAll(ctx context.Context) error {
+func (w *Worker) StartAll(ctx context.Context) {
 	w.m.Range(func(key, value interface{}) bool {
 		b := value.(disq.Broker)
 		if !b.Status() {
@@ -63,7 +63,6 @@ func (w *Worker) StartAll(ctx context.Context) error {
 		}
 		return true
 	})
-	return nil
 }
 
 func (w *Worker) StartOne(ctx context.Context, name string) error {
