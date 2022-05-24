@@ -10,6 +10,7 @@ import (
 
 	"github.com/frain-dev/disq"
 	redisBroker "github.com/frain-dev/disq/brokers/redis"
+	worker "github.com/frain-dev/disq/worker"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -20,7 +21,7 @@ type RedisBroker struct {
 }
 
 type Worker struct {
-	Worker *disq.Worker
+	Worker *worker.Worker
 	inner  *redis.Client
 }
 
@@ -64,7 +65,7 @@ func NewBroker(c *redis.Client, concurency int, name string) *RedisBroker {
 
 //create new worker
 func NewWorker(c *redis.Client, brokers []disq.Broker) *Worker {
-	w := disq.NewWorker(brokers)
+	w := worker.NewWorker(brokers)
 
 	return &Worker{
 		inner:  c,

@@ -18,7 +18,7 @@ func main() {
 	// b := example.RQueue.Queue
 	// w.Brokers()[0].(*redisBroker.Broker).Purge()
 
-	err := w.Start(ctx)
+	err := w.StartAll(ctx)
 	// b.Consume(ctx)
 
 	if err != nil {
@@ -31,14 +31,14 @@ func main() {
 		select {
 		case <-ticker.C:
 			// len, _ := b.Len()
-			for i, b := range w.Brokers() {
+			for n, b := range w.GetAllBrokers() {
 				len, _ := b.Len()
-				log.Printf("Broker_%d Queue Size: %+v", i, len)
-				log.Printf("Broker_%d Stats: %+v\n\n", i, b.Stats())
+				log.Printf("Broker_%s Queue Size: %+v", n, len)
+				log.Printf("Broker_%s Stats: %+v\n\n", n, b.Stats())
 			}
 		case <-ctx.Done():
 			log.Println("Worker quiting")
-			_ = w.Stop()
+			_ = w.StopAll()
 			return
 		}
 	}
