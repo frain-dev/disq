@@ -275,9 +275,11 @@ func (b *Stream) Stop() error {
 	}()
 	err := b.Redis.XGroupDelConsumer(
 		context.TODO(), b.stream, b.streamGroup, b.consumerName).Err()
-	if strings.HasPrefix(err.Error(), "NOGROUP") {
-		b.isConsuming = false
-		return nil
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "NOGROUP") {
+			b.isConsuming = false
+			return nil
+		}
 	}
 	b.isConsuming = false
 	return err
