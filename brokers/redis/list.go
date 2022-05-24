@@ -247,6 +247,14 @@ func (b *List) Stats() *disq.Stats {
 	}
 }
 
+func (b *List) Name() string {
+	return b.opts.Name
+}
+
+func (b *List) Config() disq.Config {
+	return b.opts
+}
+
 func (b *List) Status() bool {
 	return b.isConsuming
 }

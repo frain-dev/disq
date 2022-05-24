@@ -305,8 +305,16 @@ func (b *Stream) Stats() *disq.Stats {
 	}
 }
 
+func (b *Stream) Name() string {
+	return b.opts.Name
+}
+
 func (b *Stream) Status() bool {
 	return b.isConsuming
+}
+
+func (b *Stream) Config() disq.Config {
+	return b.opts
 }
 
 func unixMs(tm time.Time) int64 {

@@ -17,6 +17,8 @@ type Broker interface {
 	Process(*Message) error
 	FetchN(context.Context, int, time.Duration) ([]Message, error)
 	Delete(*Message) error
+	Name() string
+	Config() Config
 	Stats() *Stats
 	Status() bool
 	Len() (int, error)

@@ -163,6 +163,14 @@ func (b *LocalStorage) Stats() *disq.Stats {
 	}
 }
 
+func (b *LocalStorage) Name() string {
+	return b.opts.Name
+}
+
+func (b *LocalStorage) Config() disq.Config {
+	return b.opts
+}
+
 func (b *LocalStorage) Status() bool {
 	return b.isConsuming
 }
