@@ -152,9 +152,9 @@ func TestStop(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error stopping broker %s", err)
 				}
-				l1 := w.GetAllBrokers()[b1.Name()].Status()
-				l2 := w.GetAllBrokers()[b2.Name()].Status()
-				l3 := w.GetAllBrokers()[b3.Name()].Status()
+				l1 := w.LoadAll()[b1.Name()].Status()
+				l2 := w.LoadAll()[b2.Name()].Status()
+				l3 := w.LoadAll()[b3.Name()].Status()
 
 				return []bool{l1, l2, l3}
 			},
@@ -191,9 +191,9 @@ func TestStop(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error stopping broker %s", err)
 				}
-				l1 := w.GetAllBrokers()[b1.Name()].Status()
-				l2 := w.GetAllBrokers()[b2.Name()].Status()
-				l3 := w.GetAllBrokers()[b3.Name()].Status()
+				l1 := w.LoadAll()[b1.Name()].Status()
+				l2 := w.LoadAll()[b2.Name()].Status()
+				l3 := w.LoadAll()[b3.Name()].Status()
 
 				return []bool{l1, l2, l3}
 			},
@@ -321,7 +321,7 @@ func TestUpdate(t *testing.T) {
 				if err != nil {
 					return 0, err
 				}
-				concurrency := w.GetAllBrokers()["disqTest"].Config().(*redisBroker.RedisConfig).Concurency
+				concurrency := w.LoadAll()["disqTest"].Config().(*redisBroker.RedisConfig).Concurency
 				_ = w.StopAll()
 				return int(concurrency), err
 			},
@@ -355,7 +355,7 @@ func TestUpdate(t *testing.T) {
 					return 0, nil
 				}
 				_ = w.StopAll()
-				concurrency := w.GetAllBrokers()["disqTest"].Config().(*redisBroker.RedisConfig).Concurency
+				concurrency := w.LoadAll()["disqTest"].Config().(*redisBroker.RedisConfig).Concurency
 				return int(concurrency), err
 			},
 			expect: 10,

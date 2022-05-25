@@ -27,7 +27,7 @@ func main() {
 		select {
 		case <-ticker.C:
 			// len, _ := b.Len()
-			for n, b := range w.GetAllBrokers() {
+			for n, b := range w.LoadAll() {
 				len, _ := b.Len()
 				log.Printf("Broker_%s Queue Size: %+v", n, len)
 				log.Printf("Broker_%s Stats: %+v\n\n", n, b.Stats())

@@ -29,7 +29,7 @@ func NewWorker(brokers []disq.Broker) *Worker {
 	return w
 }
 
-func (w *Worker) GetAllBrokers() map[string]disq.Broker {
+func (w *Worker) LoadAll() map[string]disq.Broker {
 	brokers := map[string]disq.Broker{}
 
 	w.m.Range(func(key, value interface{}) bool {
@@ -40,7 +40,7 @@ func (w *Worker) GetAllBrokers() map[string]disq.Broker {
 	return brokers
 }
 
-func (w *Worker) GetOneBroker(name string) (disq.Broker, error) {
+func (w *Worker) LoadOne(name string) (disq.Broker, error) {
 	if v, ok := w.m.Load(name); ok {
 		b := v.(disq.Broker)
 		return b, nil
@@ -137,7 +137,7 @@ func (w *Worker) UpdateMany(ctx context.Context, brokers []disq.Broker) error {
 }
 
 func (w *Worker) DeleteOne(name string) error {
-	err := w.GetAllBrokers()[name].Stop()
+	err := w.LoadAll()[name].Stop()
 	if err != nil {
 		disq.Logger.Printf("error stopping broker=%s:%s", name, err)
 	}

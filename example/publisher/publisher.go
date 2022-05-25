@@ -26,7 +26,7 @@ func main() {
 				}},
 				// Delay:    delay,
 			}
-			err := example.RWorker.Worker.GetAllBrokers()["disq10"].Publish(msg)
+			err := example.RWorker.Worker.LoadAll()["disq10"].Publish(msg)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -35,7 +35,7 @@ func main() {
 	}()
 
 	go func() {
-		if len(example.RWorker.Worker.GetAllBrokers()) > 1 {
+		if len(example.RWorker.Worker.LoadAll()) > 1 {
 			for i := 0; i < count; i++ {
 				value := fmt.Sprint("message_", uuid.NewString())
 				ctx := context.Background()
@@ -49,7 +49,7 @@ func main() {
 					}},
 					// Delay:    delay,
 				}
-				err := example.RWorker.Worker.GetAllBrokers()["disq9"].Publish(msg)
+				err := example.RWorker.Worker.LoadAll()["disq9"].Publish(msg)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -60,7 +60,7 @@ func main() {
 	}()
 
 	go func() {
-		if len(example.RWorker.Worker.GetAllBrokers()) > 2 {
+		if len(example.RWorker.Worker.LoadAll()) > 2 {
 
 			for i := 0; i < count; i++ {
 				value := fmt.Sprint("message_", uuid.NewString())
@@ -75,7 +75,7 @@ func main() {
 					}},
 					// Delay:    delay,
 				}
-				err := example.RWorker.Worker.GetAllBrokers()["disq8"].Publish(msg)
+				err := example.RWorker.Worker.LoadAll()["disq8"].Publish(msg)
 				if err != nil {
 					log.Fatal(err)
 				}
