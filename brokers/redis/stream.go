@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
+
+const count = math.MaxInt64
 
 // Broker based on redis STREAM and ZSET.
 // Implements a delayed queue with support for retries.
@@ -417,4 +420,125 @@ func (b *Stream) schedulePending(ctx context.Context) (int, error) {
 	}
 
 	return len(pending), nil
+}
+
+func (q *Stream) ZRangebyScore(ctx context.Context, min string, max string) ([]string, error) {
+	bodies, err := q.opts.Redis.ZRangeByScore(ctx, q.zset, &redis.ZRangeBy{
+		Min: min,
+		Max: max,
+	}).Result()
+	if err != nil {
+		return nil, err
+	}
+	return bodies, nil
+}
+
+func (q *Stream) XPendingExt(ctx context.Context, start string, end string) ([]redis.XPendingExt, error) {
+	pending, err := q.opts.Redis.XPendingExt(ctx, &redis.XPendingExtArgs{
+		Stream: q.stream,
+		Group:  q.streamGroup,
+		Start:  start,
+		End:    end,
+		Count:  count,
+	}).Result()
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "NOGROUP") {
+			_ = q.Redis.XGroupCreateMkStream(ctx, q.stream, q.streamGroup, "0").Err()
+		}
+		return nil, err
+	}
+	return pending, nil
+}
+
+func (q *Stream) XRange(ctx context.Context, start string, end string) *redis.XMessageSliceCmd {
+	xrange := q.Redis.XRange(ctx, q.stream, start, end)
+	return xrange
+}
+
+func (q *Stream) XRangeN(ctx context.Context, start string, end string, count int64) *redis.XMessageSliceCmd {
+	xrange := q.Redis.XRangeN(ctx, q.stream, start, end, count)
+	return xrange
+}
+
+func (q *Stream) XPending(ctx context.Context) (*redis.XPending, error) {
+	pending, err := q.Redis.XPending(ctx, q.stream, q.streamGroup).Result()
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "NOGROUP") {
+			_ = q.opts.Redis.XGroupCreateMkStream(ctx, q.stream, q.streamGroup, "0").Err()
+		}
+	}
+	return pending, err
+}
+
+func (q *Stream) ZRem(ctx context.Context, body string) *redis.IntCmd {
+	result := q.Redis.ZRem(ctx, q.zset, body)
+	return result
+}
+
+func (q *Stream) XDel(ctx context.Context, id string) *redis.IntCmd {
+	result := q.Redis.XDel(ctx, q.stream, id)
+	return result
+}
+
+func (q *Stream) XAck(ctx context.Context, id string) *redis.IntCmd {
+	result := q.Redis.XAck(ctx, q.stream, id)
+	return result
+}
+
+func (q *Stream) XInfoConsumers(ctx context.Context) *redis.XInfoConsumersCmd {
+	consumersInfo := q.Redis.XInfoConsumers(ctx, q.stream, q.streamGroup)
+	return consumersInfo
+}
+
+func (q *Stream) XInfoStream(ctx context.Context) *redis.XInfoStreamCmd {
+	infoStream := q.Redis.XInfoStream(ctx, q.stream)
+	return infoStream
+}
+
+func (q *Stream) ExportMessagesfromStream(ctx context.Context) ([]disq.Message, error) {
+	xmsgs, err := q.XRange(ctx, "-", "+").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	msgs := make([]disq.Message, len(xmsgs))
+	for i := range xmsgs {
+		xmsg := &xmsgs[i]
+		msg := &msgs[i]
+
+		err = StreamUnmarshalMessage(msg, xmsg)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	return msgs, nil
+}
+
+func (q *Stream) ExportMessagesfromStreamXACK(ctx context.Context) ([]disq.Message, error) {
+	xmsgs, err := q.XRange(ctx, "-", "+").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	msgs := make([]disq.Message, len(xmsgs))
+	for i := range xmsgs {
+		xmsg := &xmsgs[i]
+		msg := &msgs[i]
+
+		err = StreamUnmarshalMessage(msg, xmsg)
+
+		if err != nil {
+			return nil, err
+		}
+		if err := q.opts.Redis.XAck(ctx, q.stream, q.streamGroup, xmsg.ID).Err(); err != nil {
+			return nil, err
+		}
+
+		err = q.opts.Redis.XDel(ctx, q.stream, xmsg.ID).Err()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return msgs, nil
 }
