@@ -2,6 +2,7 @@ package localstorage
 
 import (
 	"errors"
+	"log"
 )
 
 type LocalStorageConfig struct {
@@ -14,6 +15,10 @@ type LocalStorageConfig struct {
 func (ls *LocalStorageConfig) Init() error {
 	if ls.inited {
 		return errors.New("localstorage config already initiated")
+	}
+
+	if ls.Name == "" {
+		log.Fatalf("LocalStorageConfig.Name is required")
 	}
 
 	if ls.Concurency == 0 {

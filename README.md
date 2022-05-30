@@ -66,16 +66,16 @@ var brokers = []disq.Broker{broker1, broker2, broker3}
 var w = disq.NewWorker(brokers)
 
 //start processing messages
-var err = w.Start(ctx)
+var err = w.StartAll(ctx)
 if err != nil {
     log.Fatal(err)
 }
 
 //Get stats from all brokers
-for i, b := range w.Brokers() {
-    var len, _ = b.Len()
-    log.Printf("Broker_%d Queue Size: %+v", i, len)
-    log.Printf("Broker_%d Stats: %+v\n\n", i, b.Stats())
+for name, broker := range w.GetAllBrokers() {
+    var len, _ = broker.Len()
+    log.Printf("Broker_%d Queue Size: %+v", name, len)
+    log.Printf("Broker_%d Stats: %+v\n\n", i, broker.Stats())
 }
 ```
 

@@ -17,6 +17,8 @@ type Broker interface {
 	Process(*Message) error
 	FetchN(context.Context, int, time.Duration) ([]Message, error)
 	Delete(*Message) error
+	Name() string
+	Config() Config
 	Stats() *Stats
 	Status() bool
 	Len() (int, error)
@@ -46,17 +48,19 @@ type Redis interface {
 	XDel(ctx context.Context, stream string, ids ...string) *redis.IntCmd
 	XLen(ctx context.Context, stream string) *redis.IntCmd
 	XRangeN(ctx context.Context, stream, start, stop string, count int64) *redis.XMessageSliceCmd
+	XRange(ctx context.Context, stream, start, stop string) *redis.XMessageSliceCmd
 	XGroupCreateMkStream(ctx context.Context, stream, group, start string) *redis.StatusCmd
 	XReadGroup(ctx context.Context, a *redis.XReadGroupArgs) *redis.XStreamSliceCmd
 	XAck(ctx context.Context, stream, group string, ids ...string) *redis.IntCmd
+	XInfoStream(ctx context.Context, key string) *redis.XInfoStreamCmd
 	XPendingExt(ctx context.Context, a *redis.XPendingExtArgs) *redis.XPendingExtCmd
+	XPending(ctx context.Context, stream, group string) *redis.XPendingCmd
 	XTrim(ctx context.Context, key string, maxLen int64) *redis.IntCmd
 	XGroupDelConsumer(ctx context.Context, stream, group, consumer string) *redis.IntCmd
 	ZAdd(ctx context.Context, key string, members ...*redis.Z) *redis.IntCmd
 	ZRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) *redis.StringSliceCmd
 	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
 	XInfoConsumers(ctx context.Context, key string, group string) *redis.XInfoConsumersCmd
-
 	//List methods
 	LIndex(ctx context.Context, key string, index int64) *redis.StringCmd
 	LLen(ctx context.Context, key string) *redis.IntCmd

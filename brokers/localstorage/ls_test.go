@@ -322,7 +322,7 @@ func TestDelay(t *testing.T) {
 				tm := <-handlerCh
 				sub := tm.Sub(start)
 				_ = b.Stop()
-				return disq.DurEqual(msg.Delay, sub, 3), nil
+				return disq.DurEqual(msg.Delay, sub, 6), nil
 			},
 			expect: true,
 		},
